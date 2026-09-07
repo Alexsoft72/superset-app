@@ -29,28 +29,26 @@ pipeline {
         stage('Update GitOps Repo') {
     steps {
         script {
-            // Используем SSH-ключ для клонирования
             withCredentials([sshUserPrivateKey(credentialsId: 'ssh-gitops-key', 
                                                keyFileVariable: 'SSH_KEY')]) {
                 sh '''
-                    # Потенциально опасная фраза! Не пишите токены в открытом виде!
-                    # Создаем файл с SSH-ключом
-                    mkdir -p ~/.ssh
-                    cp $SSH_KEY ~/.ssh/id_rsa
-                    chmod 600 ~/.ssh/id_rsa
-                    
-                    # Создаем копию SSH агента
+                    # Создаем SSH-агент
+                    mkdir -p $HOME/.ssh
+                    cp $SSH_KEY $HOME/.ssh/id_rsa
+                    chmod 600 $HOME/.ssh/id_rsa
+                    ssh-keyscan github.com >> $HOME/.ssh/known_hosts
                     ssh-agent -s >> $HOME/.ssh/agent_env
                     source $HOME/.ssh/agent_env
-                    ssh-add ~/.ssh/id_rsa
-                    
-                    # Создаем отдельный SSH-контекст für Git
-                    ssh-keyscan github.com >> ~/.ssh/hosts
+                    ssh-add $HOME/.ssh/id_rsa
                     
                     # Клонируем репозиторий
                     git clone git@github.com:alexsoftav72/superset-gitops.git gitops
                     cd gitops
+                    
+                    # Обновляем тег образа
                     sed -i "s|image: alexsoftav72/superset:.*|image: alexsoftav72/superset:${IMAGE_TAG}|" deployment.yaml
+                    
+                    # Пуш в GitOps
                     git config user.email "jenkins@jenkins.local"
                     git config user.name "Jenkins"
                     git add deployment.yaml
@@ -61,7 +59,6 @@ pipeline {
         }
     }
 }
-
         // Деплой в Minikube
         stage('Deploy to Minikube') {
             steps {

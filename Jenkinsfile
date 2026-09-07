@@ -26,19 +26,33 @@ pipeline {
         }
 
         // Обновляем тег образа в GitOps-репозитории
-        stage('Update GitOps Repo') {
+      stage('Update GitOps Repo') {
             steps {
                 script {
-                    sh '''
-                        git clone ${GITOPS_REPO} gitops
-                        cd gitops
-                        sed -i "s|image: alexsoftav72/superset:.*|image: alexsoftav72/superset:${IMAGE_TAG}|" deployment.yaml
-                        git config user.email "jenkins@jenkins.local"
-                        git config user.name "Jenkins"
-                        git add deployment.yaml
-                        git commit -m "Update image to version ${IMAGE_TAG}"
-                        git push origin main
-                    '''
+                    // Используем withCredentials для доступа к GitHub
+                    withCredentials([usernamePassword(
+                        credentialsId: GITOPS_CREDENTIALS,
+                        usernameVariable: 'GIT_USER',
+                        passwordVariable: 'GIT_TOKEN'
+                    )]) {
+                        sh '''
+                            # Используем токен для клонирования
+                            git clone https://${GIT_USER}:${GIT_TOKEN}@github.com/alexsoftav72/superset-gitops.git gitops
+                            cd gitops
+                            
+                            # Обновляем тег образа
+                            sed -i "s|image: alexsoftav72/superset:.*|image: alexsoftav72/superset:${IMAGE_TAG}|" deployment.yaml
+                            
+                            # Настраиваем git
+                            git config user.email "jenkins@jenkins.local"
+                            git config user.name "Jenkins"
+                            
+                            # Коммитим и пушим
+                            git add deployment.yaml
+                            git commit -m "Update image to version ${IMAGE_TAG}" || echo "No changes to commit"
+                            git push https://${GIT_USER}:${GIT_TOKEN}@github.com/alexsoftav72/superset-gitops.git main
+                        '''
+                    }
                 }
             }
         }

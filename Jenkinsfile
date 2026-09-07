@@ -26,36 +26,41 @@ pipeline {
         }
 
         // Обновляем тег образа в GitOps-репозитории
-      stage('Update GitOps Repo') {
-            steps {
-                script {
-                    // Используем withCredentials для доступа к GitHub
-                    withCredentials([usernamePassword(
-                        credentialsId: GITOPS_CREDENTIALS,
-                        usernameVariable: 'GIT_USER',
-                        passwordVariable: 'GIT_TOKEN'
-                    )]) {
-                        sh '''
-                            # Используем токен для клонирования
-                            git clone https://${GIT_USER}:${GIT_TOKEN}@github.com/alexsoftav72/superset-gitops.git gitops
-                            cd gitops
-                            
-                            # Обновляем тег образа
-                            sed -i "s|image: alexsoftav72/superset:.*|image: alexsoftav72/superset:${IMAGE_TAG}|" deployment.yaml
-                            
-                            # Настраиваем git
-                            git config user.email "jenkins@jenkins.local"
-                            git config user.name "Jenkins"
-                            
-                            # Коммитим и пушим
-                            git add deployment.yaml
-                            git commit -m "Update image to version ${IMAGE_TAG}" || echo "No changes to commit"
-                            git push https://${GIT_USER}:${GIT_TOKEN}@github.com/alexsoftav72/superset-gitops.git main
-                        '''
-                    }
-                }
+        stage('Update GitOps Repo') {
+    steps {
+        script {
+            // Используем SSH-ключ для клонирования
+            withCredentials([sshUserPrivateKey(credentialsId: 'ssh-gitops-key', 
+                                               keyFileVariable: 'SSH_KEY')]) {
+                sh '''
+                    // Потенциально опасная фраза! Не пишите токены в открытом виде!
+                    // Создаем файл с SSH-ключом
+                    mkdir -p ~/.ssh
+                    cp $SSH_KEY ~/.ssh/id_rsa
+                    chmod 600 ~/.ssh/id_rsa
+                    
+                    // Создаем копию SSH агента
+                    ssh-agent -s >> $HOME/.ssh/agent_env
+                    source $HOME/.ssh/agent_env
+                    ssh-add ~/.ssh/id_rsa
+                    
+                    // Создаем отдельный SSH-контекст für Git
+                    ssh-keyscan github.com >> ~/.ssh/hosts
+                    
+                    // Клонируем репозиторий
+                    git clone git@github.com:alexsoftav72/superset-gitops.git gitops
+                    cd gitops
+                    sed -i "s|image: alexsoftav72/superset:.*|image: alexsoftav72/superset:${IMAGE_TAG}|" deployment.yaml
+                    git config user.email "jenkins@jenkins.local"
+                    git config user.name "Jenkins"
+                    git add deployment.yaml
+                    git commit -m "Update image to version ${IMAGE_TAG}"
+                    git push origin main
+                '''
             }
         }
+    }
+}
 
         // Деплой в Minikube
         stage('Deploy to Minikube') {

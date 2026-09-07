@@ -1,18 +1,18 @@
 pipeline {
     agent any
+
     environment {
         REGISTRY = 'alexsoftav72'
         APP_NAME = 'superset'
         IMAGE_TAG = "${BUILD_NUMBER}"
+        // ID credentials для kubeconfig (который вы успешно настроили)
+        KUBECONFIG_CRED_ID = 'minikube-full-kubeconfig'
+        // URL репозитория с манифестами
+        GITOPS_REPO = 'https://github.com/alexsoftav72/superset-gitops.git'
+        GITOPS_CREDENTIALS = 'github-token'
     }
 
     stages {
-        stage('Checkout') {
-            steps {
-                checkout scm
-            }
-        }
-
         stage('Build & Push Image') {
             steps {
                 script {
@@ -24,11 +24,43 @@ pipeline {
                 }
             }
         }
+
+        // Обновляем тег образа в GitOps-репозитории
+        stage('Update GitOps Repo') {
+            steps {
+                script {
+                    sh '''
+                        git clone ${GITOPS_REPO} gitops
+                        cd gitops
+                        sed -i "s|image: alexsoftav72/superset:.*|image: alexsoftav72/superset:${IMAGE_TAG}|" deployment.yaml
+                        git config user.email "jenkins@jenkins.local"
+                        git config user.name "Jenkins"
+                        git add deployment.yaml
+                        git commit -m "Update image to version ${IMAGE_TAG}"
+                        git push origin main
+                    '''
+                }
+            }
+        }
+
+        // Деплой в Minikube
+        stage('Deploy to Minikube') {
+            steps {
+                withKubeConfig([credentialsId: 'minikube-full-kubeconfig']) {
+                    sh '''
+                        kubectl apply -f deployment.yaml -n superset
+                        kubectl apply -f service.yaml -n superset
+                        kubectl apply -f ingress.yaml -n superset
+                        kubectl rollout status deployment/superset -n superset
+                    '''
+                }
+            }
+        }
     }
 
     post {
         always {
-            cleanWs()
+            deleteDir()
         }
     }
 }

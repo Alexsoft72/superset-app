@@ -32,16 +32,7 @@ pipeline {
             withCredentials([sshUserPrivateKey(credentialsId: 'ssh-gitops-key', 
                                                keyFileVariable: 'SSH_KEY')]) {
                 sh '''
-        # 1. Создаем папку в домашней директории
-        mkdir -p $HOME/.ssh
-        
-        # 2. Копируем ключ
-        cp $SSH_KEY $HOME/.ssh/id_rsa
-        chmod 600 $HOME/.ssh/id_rsa
-        
-        # 3. Добавляем запись о хосте (это защита от атак "человек посередине")
-        ssh-keyscan github.com >> $HOME/.ssh/known_hosts
-        
+       
         # 4. Клонируем репозиторий
         git clone git@github.com:alexsoftav72/superset-gitops.git gitops
         cd gitops

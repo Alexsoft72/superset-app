@@ -32,15 +32,7 @@ pipeline {
             withCredentials([sshUserPrivateKey(credentialsId: 'ssh-gitops-key', 
                                                keyFileVariable: 'SSH_KEY')]) {
                 sh '''
-                    # Создаем SSH-агент
-                    mkdir -p $HOME/.ssh
-                    cp $SSH_KEY $HOME/.ssh/id_rsa
-                    chmod 600 $HOME/.ssh/id_rsa
-                    ssh-keyscan github.com >> $HOME/.ssh/known_hosts
-                    ssh-agent -s >> $HOME/.ssh/agent_env
-                    source $HOME/.ssh/agent_env
-                    ssh-add $HOME/.ssh/id_rsa
-                    
+                            
                     # Клонируем репозиторий
                     git clone git@github.com:alexsoftav72/superset-gitops.git gitops
                     cd gitops

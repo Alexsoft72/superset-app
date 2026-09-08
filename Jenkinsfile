@@ -32,7 +32,8 @@ pipeline {
             withCredentials([sshUserPrivateKey(credentialsId: 'ssh-gitops-key', 
                                                keyFileVariable: 'SSH_KEY')]) {
                 sh '''
-       
+        ssh-keyscan github.com >> $HOME/.ssh/known_hosts
+        
         # 4. Клонируем репозиторий
         git clone git@github.com:alexsoftav72/superset-gitops.git gitops
         cd gitops

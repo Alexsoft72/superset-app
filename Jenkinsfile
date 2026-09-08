@@ -61,7 +61,7 @@ pipeline {
                 kubectl -n superset get job superset-init || kubectl -n superset create job superset-init --image=alexsoftav72/superset:latest -- sh -c "superset db upgrade && superset fab create-admin --username admin --password admin --firstname Admin --lastname Admin --email admin@superset.com"
                 
                 # 4. Проверяем, что под готов
-                kubectl -n superset wait --for=condition=ready pod -l app=superset
+            #    kubectl -n superset wait --for=condition=ready pod -l app=superset
             '''
         }
     }

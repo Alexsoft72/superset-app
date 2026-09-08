@@ -51,6 +51,8 @@ pipeline {
     steps {
         withKubeConfig([credentialsId: 'minikube-full-kubeconfig']) {
             sh '''
+                kubectl create namespace superset
+            
                 # 1. Проверяем, существует ли секрет
                 kubectl -n superset get secret superset-secrets || kubectl -n superset create secret generic superset-secrets --from-literal=secret-key='121212121223453625735'
 
@@ -71,7 +73,7 @@ pipeline {
             steps {
                 withKubeConfig([credentialsId: 'minikube-full-kubeconfig']) {
                     sh '''
-                        kubectl create namespace superset
+                        
                         kubectl apply -f gitops/deployment.yaml -n superset
                         kubectl apply -f gitops/service.yaml -n superset
                         kubectl apply -f gitops/ingress.yaml -n superset

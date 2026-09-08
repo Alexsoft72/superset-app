@@ -35,7 +35,7 @@ pipeline {
         ssh-keyscan github.com >> $HOME/.ssh/known_hosts
         
         # 4. Клонируем репозиторий
-        git clone git@github.com:alexsoftav72/superset-gitops.git gitops
+        git clone git@github.com:alexsoft72/superset-gitops.git gitops
         cd gitops
         
         # 5. Обновляем тег образа

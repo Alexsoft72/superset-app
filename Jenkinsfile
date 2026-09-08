@@ -47,22 +47,20 @@ pipeline {
             }
         }
 
-        stage('Init Superset') {
+       stage('Init Superset') {
     steps {
         withKubeConfig([credentialsId: 'minikube-full-kubeconfig']) {
             sh '''
+                # 1. Создаём Namespace 
                 kubectl create namespace superset
-            
-                # 1. Проверяем, существует ли секрет
-                kubectl -n superset get secret superset-secrets || kubectl -n superset create secret generic superset-secrets --from-literal=secret-key='121212121223453625735'
-
-                # 2. Проверяем, существует ли Job
-                kubectl -n superset get job superset-init || kubectl -n superset create job superset-init --image=alexsoftav72/superset:latest -- sh -c "superset db upgrade && superset fab create-admin --username admin --password admin --firstname Admin --lastname Admin --email admin@superset.com"
-                                
-                # Инициализация базы данных
-                kubectl -n superset create job superset-init --image=alexsoftav72/superset:latest -- sh -c "superset db upgrade && superset fab create-admin --username admin --password admin --firstname Admin --lastname Admin --email admin@superset.com"
                 
-                # Проверяем, что под готов
+                # 2. Создаём Secret 
+                kubectl -n superset get secret superset-secrets || kubectl -n superset create secret generic superset-secrets --from-literal=secret-key='121212121223453625735'
+                
+                # 3. Создаём Job 
+                kubectl -n superset get job superset-init || kubectl -n superset create job superset-init --image=alexsoftav72/superset:latest -- sh -c "superset db upgrade && superset fab create-admin --username admin --password admin --firstname Admin --lastname Admin --email admin@superset.com"
+                
+                # 4. Проверяем, что под готов
                 kubectl -n superset wait --for=condition=ready pod -l app=superset
             '''
         }

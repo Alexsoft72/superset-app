@@ -52,7 +52,7 @@ pipeline {
         withKubeConfig([credentialsId: 'minikube-full-kubeconfig']) {
             sh '''
                 # 1. Создаём Namespace 
-                kubectl create namespace superset
+                kubectl get namespace superset || kubectl create namespace superset
                 
                 # 2. Создаём Secret 
                 kubectl -n superset get secret superset-secrets || kubectl -n superset create secret generic superset-secrets --from-literal=secret-key='121212121223453625735'

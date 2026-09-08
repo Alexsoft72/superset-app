@@ -51,6 +51,7 @@ pipeline {
             steps {
                 withKubeConfig([credentialsId: 'minikube-full-kubeconfig']) {
                     sh '''
+                        kubectl create namespace superset
                         kubectl apply -f gitops/deployment.yaml -n superset
                         kubectl apply -f gitops/service.yaml -n superset
                         kubectl apply -f gitops/ingress.yaml -n superset

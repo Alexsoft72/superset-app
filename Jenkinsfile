@@ -54,18 +54,20 @@ pipeline {
 }
         // Деплой в Minikube
         stage('Deploy to Minikube') {
-            steps {
-                withKubeConfig([credentialsId: 'minikube-full-kubeconfig']) {
-                    sh '''
-                        kubectl apply -f deployment.yaml -n superset
-                        kubectl apply -f service.yaml -n superset
-                        kubectl apply -f ingress.yaml -n superset
-                        kubectl rollout status deployment/superset -n superset
-                    '''
-                }
-            }
+    steps {
+        withKubeConfig([credentialsId: 'minikube-full-kubeconfig']) {
+            sh '''
+                # Применяем манифесты из папки superset-gitops
+                kubectl apply -f superset-gitops/deployment.yaml -n superset
+                kubectl apply -f superset-gitops/service.yaml -n superset
+                kubectl apply -f superset-gitops/ingress.yaml -n superset
+                kubectl apply -f superset-gitops/configmap.yaml -n superset
+                kubectl apply -f superset-gitops/persistentvolumeclaim.yaml -n superset
+                kubectl rollout status deployment/superset -n superset
+            '''
         }
     }
+}
 
     post {
         always {

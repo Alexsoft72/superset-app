@@ -51,8 +51,9 @@ pipeline {
     steps {
         withKubeConfig([credentialsId: 'minikube-full-kubeconfig']) {
             sh '''
-                kubectl -n superset create secret generic superset-secrets --from-literal=secret-key='121212121223453625735'
-                
+                # 1. Проверяем, существует ли секрет
+                kubectl -n superset get secret superset-secrets || kubectl -n superset create secret generic superset-secrets --from-literal=secret-key='121212121223453625735'
+                                
                 # Инициализация базы данных
                 kubectl -n superset create job superset-init --image=alexsoftav72/superset:latest -- sh -c "superset db upgrade && superset fab create-admin --username admin --password admin --firstname Admin --lastname Admin --email admin@superset.com"
                 
